@@ -1,8 +1,8 @@
 CC = g++
-CFLAGS = -Wall -Wextra -std=c++17 -Iinclude -g
-LDFLAGS = -lws2_32  # Добавлена библиотека Winsock
-# -Wall -Wextra это флаги которые позволяют выводить ошибки и предупреждения во время компиляции
-# -std=c++17 это просто стандарт языка
+CFLAGS = -Wall -Wextra -std=c++11 -Iinclude -g
+LDFLAGS = -lboost_system -lboost_thread  # Добавлены библиотеки Boost
+
+# остальная часть Makefile остается без изменений
 
 # директории
 SRC_DIR = ./src
