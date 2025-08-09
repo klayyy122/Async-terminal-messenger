@@ -1,5 +1,5 @@
 CC = g++
-CFLAGS = -Wall -Wextra -std=c++1 -Iinclude -g
+CFLAGS = -Wall -Wextra -std=c++11 -Iinclude -g
 LDFLAGS = -lboost_system -lpthread
 
 # Директории
