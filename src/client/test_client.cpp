@@ -34,25 +34,27 @@ private:
 
     void async_write()
     {
-        std::string write_buffer;
-        while (running)
+        boost::asio::post([this]()
         {
+            std::string write_buffer;
             std::getline(std::cin, write_buffer);
-            if (!running) break;
             
             write_buffer += '\n'; // Add delimiter
             
             boost::system::error_code ec;
-            boost::asio::write(socket, boost::asio::buffer(write_buffer), ec);
-            
-            if (ec)
-            {
-                std::cerr << "Write error: " << ec.message() << "\n";
-                running = false;
-                socket.close();
-                break;
-            }
-        }
+            boost::asio::async_write(socket, boost::asio::buffer(write_buffer), 
+                [this](boost::system::error_code ec, std::size_t length)
+                {
+                    if (!ec)
+                        async_write();
+                    else
+                    {
+                        std::cerr << "Write error: " << ec.message() << "\n";
+                        running = false;
+                        socket.close();
+                    }
+                });
+        });
     }
 
 public:
@@ -63,7 +65,7 @@ public:
         async_read();
         
         // Запускаем запись в отдельном потоке
-        std::thread([this]() { async_write(); }).detach();
+        async_write();
     }
 
     ~Client()
