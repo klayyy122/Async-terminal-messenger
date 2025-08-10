@@ -10,9 +10,8 @@ class Client
 private:
     tcp::socket socket;
     std::string read_buffer;
-    std::atomic<bool> running{true};
 
-    void async_read()
+    void read()
     {
         boost::asio::async_read_until(socket, boost::asio::dynamic_buffer(read_buffer), '\n',
             [this](boost::system::error_code ec, std::size_t length)
@@ -21,18 +20,17 @@ private:
                 {
                     std::cout << "Received: " << read_buffer.substr(0, length);
                     read_buffer.erase(0, length);
-                    async_read(); // Continue reading
+                    read(); // Continue reading
                 }
                 else
                 {
                     std::cerr << "Read error: " << ec.message() << "\n";
-                    running = false;
                     socket.close();
                 }
             });
     }
 
-    void async_write()
+    void write()
     {
         boost::asio::post([this]()
         {
@@ -46,11 +44,10 @@ private:
                 [this](boost::system::error_code ec, std::size_t length)
                 {
                     if (!ec)
-                        async_write();
+                        write();
                     else
                     {
                         std::cerr << "Write error: " << ec.message() << "\n";
-                        running = false;
                         socket.close();
                     }
                 });
@@ -62,15 +59,14 @@ public:
         : socket(std::move(sock))
     {
         // Запускаем чтение в основном потоке io_context
-        async_read();
+        read();
         
         // Запускаем запись в отдельном потоке
-        async_write();
+        write();
     }
 
     ~Client()
     {
-        running = false;
         socket.close();
     }
 };
