@@ -4,7 +4,7 @@
 #include <boost/asio.hpp>
 #include <thread>
 #include <atomic>
-#include "../Message.hpp"
+#include "../../include/Message.hpp"
 
 using boost::asio::ip::tcp;
 

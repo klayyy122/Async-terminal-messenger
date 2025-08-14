@@ -4,6 +4,7 @@
 #include <memory>
 #include <deque>
 #include <boost/asio.hpp>
+#include "../../include/Message.hpp"
 
 using boost::asio::ip::tcp;
 
@@ -15,7 +16,7 @@ public:
 
     void start() {read_message();}
 
-    void deliver(const std::string& message);
+    void deliver(const Message& message);
 
 private:
     void read_message();
@@ -23,7 +24,7 @@ private:
 
     tcp::socket socket_;
     std::string read_buffer_;
-    std::deque<std::string> write_msgs_;
+    std::deque<Message> write_msgs_;
     std::vector<std::shared_ptr<ChatSession>>& sessions_;
 
     std::string User_login;

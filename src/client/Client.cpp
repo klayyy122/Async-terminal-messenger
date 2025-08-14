@@ -7,7 +7,7 @@ void Client::read()
         {
             if (!ec)
             {
-                std::cout << "Received: " << read_buffer.substr(0, length);
+                std::cout << "Received: " << read_buffer.substr(4, length);
                 read_buffer.erase(0, length);
                 read(); // Continue reading
             }
@@ -23,13 +23,16 @@ void Client::write()
 {
     boost::asio::post([this]()
     {
+        Message msg;
         std::string write_buffer;
         std::getline(std::cin, write_buffer);
         
         write_buffer += '\n'; // Add delimiter
+
+        msg.Make_MSG_message(write_buffer);
         
         boost::system::error_code ec;
-        boost::asio::async_write(socket, boost::asio::buffer(write_buffer), 
+        boost::asio::async_write(socket, boost::asio::buffer(msg.get_raw_message()),
             [this](boost::system::error_code ec, std::size_t /*length*/)
             {
                 if (!ec)

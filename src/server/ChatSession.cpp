@@ -1,6 +1,6 @@
 #include "ChatSession.hpp"
 
-void ChatSession::deliver(const std::string& message)
+void ChatSession::deliver(const Message& message)
 {
     bool write_in_progress = !write_msgs_.empty();
         write_msgs_.push_back(message);
@@ -17,13 +17,15 @@ void ChatSession::read_message()
             if (!ec)
             {
                 // Извлекаем сообщение (с удалением разделителя)
-                std::string message = read_buffer_.substr(0, length);
+                Message msg;
+                msg = read_buffer_.substr(0, length);
                 read_buffer_.erase(0, length);
 
                 // Рассылаем всем клиентам
-                for (auto& session : sessions_)
-                    if (session.get() != this)
-                        session->deliver(message);
+                if (msg.is_regular_message())
+                    for (auto& session : sessions_)
+                        if (session.get() != this)
+                            session->deliver(msg);
 
                 // Читаем следующее сообщение
                 read_message();
@@ -41,7 +43,7 @@ void ChatSession::read_message()
 void ChatSession::write_message()
 {
     auto self(shared_from_this());
-    boost::asio::async_write(socket_, boost::asio::buffer(write_msgs_.front()),
+    boost::asio::async_write(socket_, boost::asio::buffer(write_msgs_.front().get_raw_message()),
         [this, self](boost::system::error_code ec, std::size_t /*length*/)
         {
             if (!ec)
