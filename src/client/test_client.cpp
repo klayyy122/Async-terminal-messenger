@@ -17,8 +17,7 @@ int main()
 
         Client c(io_context, std::move(socket));
         
-        io_context.run(); // Запускаем обработку асинхронных операций
-        
+        io_context.run(); // Запускаем обработку асинхронных операций       
     } 
     catch (std::exception& e) 
     {

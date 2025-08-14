@@ -19,10 +19,13 @@ public:
 
 private:
     void read_message();
-    void write_message();
+    void write_message();   
 
     tcp::socket socket_;
     std::string read_buffer_;
     std::deque<std::string> write_msgs_;
     std::vector<std::shared_ptr<ChatSession>>& sessions_;
+
+    std::string User_login;
+    std::string User_password;
 };

@@ -5,6 +5,7 @@
 #include <deque>
 #include <boost/asio.hpp>
 #include "ChatSession.hpp"
+#include "../Message.hpp"
 
 using boost::asio::ip::tcp;
 
@@ -25,6 +26,24 @@ private:
             {
                 if (!ec)
                 {
+
+                    bool login_received = false;
+                    
+                    while (!login_received)
+                    {
+
+                        try
+                        {
+                            boost::asio::read_until(socket, , '\n');
+                        }
+                        catch(const std::runtime_error& e)
+                        {
+                            std::cerr << e.what() << '\n';
+                        }
+                        
+
+                    }
+
                     auto session = std::make_shared<ChatSession>(std::move(socket), sessions_);
                     sessions_.push_back(session);
                     session->start();
@@ -33,6 +52,8 @@ private:
                 accept_connection();
             });
     }
+
+    
 
     tcp::acceptor acceptor_;
     std::vector<std::shared_ptr<ChatSession>> sessions_;

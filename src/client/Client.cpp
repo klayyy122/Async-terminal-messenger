@@ -30,7 +30,7 @@ void Client::write()
         
         boost::system::error_code ec;
         boost::asio::async_write(socket, boost::asio::buffer(write_buffer), 
-            [this](boost::system::error_code ec, std::size_t length)
+            [this](boost::system::error_code ec, std::size_t /*length*/)
             {
                 if (!ec)
                     write();
@@ -41,4 +41,22 @@ void Client::write()
                 }
             });
     });
+}
+
+void Client::input_login_and_password()
+{
+    do
+    {
+        User_login.erase(User_login.begin(), User_login.end());
+        std::cout << "Введите логин: ";
+        std::getline(std::cin, User_login);
+    } while (User_login.size() == 0 ||  User_login.size() > 32);
+    
+    
+    do
+    {
+        User_password.erase(User_password.begin(), User_password.end());
+        std::cout << "Введите пароль: ";
+        std::getline(std::cin, User_password);
+    } while (User_password.size() == 0 ||  User_password.size() > 32);
 }
