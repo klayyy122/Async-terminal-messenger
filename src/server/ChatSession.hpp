@@ -26,6 +26,8 @@ private:
     void authorization();
     void read_login();
     void read_password();
+    void send_confirm_login();
+    void send_confirm_password();
 
     tcp::socket socket_;
     std::string read_buffer_;

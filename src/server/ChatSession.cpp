@@ -81,7 +81,7 @@ void ChatSession::read_login()
 
                 std::cout << User_login << std::endl;
 
-                read_password();
+                send_confirm_login();
             } 
             else 
             {
@@ -90,6 +90,46 @@ void ChatSession::read_login()
                 if (it != sessions_.end())
                     sessions_.erase(it);
             }            
+        });
+}
+
+void ChatSession::send_confirm_login()
+{
+    auto self(shared_from_this());
+    std::string msg = "All good\n";
+
+    boost::asio::async_write(socket_, boost::asio::dynamic_buffer(msg),
+        [this, self](boost::system::error_code ec, std::size_t /*length*/)
+        {
+            if (!ec)
+                read_password();
+            else
+            {
+                // Удаляем сессию при ошибке
+                auto it = std::find(sessions_.begin(), sessions_.end(), self);
+                if (it != sessions_.end())
+                    sessions_.erase(it);
+            }
+        });
+}
+
+void ChatSession::send_confirm_password()
+{
+    auto self(shared_from_this());
+    std::string msg = "All good\n";
+
+    boost::asio::async_write(socket_, boost::asio::dynamic_buffer(msg),
+        [this, self](boost::system::error_code ec, std::size_t /*length*/)
+        {
+            if (!ec)
+                read_message();
+            else
+            {
+                // Удаляем сессию при ошибке
+                auto it = std::find(sessions_.begin(), sessions_.end(), self);
+                if (it != sessions_.end())
+                    sessions_.erase(it);
+            }
         });
 }
 
@@ -106,6 +146,7 @@ void ChatSession::read_password()
                 read_buffer_.clear();
                 std::cout << "User " << User_login << " is here with password " << User_password << std::endl;
 
+                //send_confirm_password();
                 read_message();
             }
             else

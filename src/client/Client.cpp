@@ -73,7 +73,7 @@ void Client::send_login()
         [this](boost::system::error_code ec, std::size_t /*length*/)
         {
             if (!ec)
-                send_password();
+                wait_confirm_login();
             else
             {
                 ;
@@ -81,10 +81,56 @@ void Client::send_login()
         });
 }
 
+void Client::wait_confirm_login()
+{
+    boost::asio::async_read_until(socket, boost::asio::dynamic_buffer(read_buffer), '\n',
+    [this](boost::system::error_code ec, std::size_t length)
+    {
+        if (!ec)
+        {
+            if (read_buffer == "All good\n")
+            {
+                read_buffer.erase(0, length);
+                send_password();
+            }
+            else if (read_buffer == "ERROR:LOGIN_TAKEN\n")
+            {
+                read_buffer.erase(0, length);
+                std::cerr << "Login is already taken" << std::endl;
+            }
+        }
+        else
+        {
+            std::cerr << "Read error: " << ec.message() << "\n";
+            socket.close();
+        }
+    });
+}
+
+void Client::wait_confirm_password()
+{
+    boost::asio::async_read_until(socket, boost::asio::dynamic_buffer(read_buffer), '\n',
+    [this](boost::system::error_code ec, std::size_t length)
+    {
+        if (!ec)
+        {
+            if (read_buffer == "All good\n")
+                {
+                    read_buffer.erase(0, length);
+                    send_password();
+                }
+        }
+        else
+        {
+            std::cerr << "Read error: " << ec.message() << "\n";
+            socket.close();
+        }
+    });
+}
+
 void Client::send_password()
 {
     //костыль, чтобы дать время серверу обработать логин и только потом отправить серверу пароль
-    for (int i = 0; i < 1000000; i++);
     boost::asio::async_write(socket, boost::asio::buffer(User_password + '\n'), 
         [this](boost::system::error_code /*ec*/, std::size_t /*length*/)
         {
