@@ -13,6 +13,7 @@ void Client::read()
             }
             else
             {
+                std::cout << "qwfqwrfqwefqw" << std::endl;
                 std::cerr << "Read error: " << ec.message() << "\n";
                 socket.close();
             }
