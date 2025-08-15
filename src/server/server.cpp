@@ -21,6 +21,8 @@ int main(int argc, char* argv[])
         boost::asio::io_context io_context;
         ChatServer server(io_context, std::atoi(argv[1]));
 
+        io_context.run();
+
         std::thread t([&io_context](){ io_context.run(); });
 
         std::cout << "Server running on port " << argv[1] << std::endl;

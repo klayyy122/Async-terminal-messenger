@@ -4,7 +4,6 @@
 #include <boost/asio.hpp>
 #include <thread>
 #include <atomic>
-#include "../../include/Message.hpp"
 
 using boost::asio::ip::tcp;
 
@@ -19,6 +18,9 @@ private:
     void read();
     void write();
     void input_login_and_password();
+    void send_login_and_password();
+    void send_login();
+    void send_password();
 
 public:
     Client(boost::asio::io_context& io_context, tcp::socket&& sock)
@@ -26,10 +28,7 @@ public:
     {
         input_login_and_password();
 
-        // Запускаем чтение в основном потоке io_context
-        read();
-        // Запускаем запись в отдельном потоке
-        write();
+        send_login_and_password();
     }
 
     ~Client()
