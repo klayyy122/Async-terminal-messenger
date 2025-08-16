@@ -90,33 +90,14 @@ void ChatSession::read_login()
                     // Логин свободен
                     User_login = received_login;
                     logins_.insert(User_login);
-                    
-                    
+                       
                     // Отправляем подтверждение клиенту
-                    boost::asio::async_write(socket_, 
-                        boost::asio::buffer("LOGIN_OK\n"),
-                        [this, self](boost::system::error_code error, std::size_t){
-                            if (!error) {
-                                read_password();
-                            } else {
-                                logins_.erase(User_login);
-                                socket_.close();
-                            }
-                        });
+                    send_confirm_login();
                 }
                 else
                 {
                     // Логин занят
-                    boost::asio::async_write(socket_, 
-                        boost::asio::buffer("LOGIN_TAKEN\n"),
-                        [this, self](boost::system::error_code error, std::size_t){
-                            if (!error) {
-                                // Даем клиенту еще попытку
-                                read_login();
-                            } else {
-                                socket_.close();
-                            }
-                        });
+                    send_login_taken();
                 }
             } 
             else 
@@ -129,44 +110,44 @@ void ChatSession::read_login()
 void ChatSession::send_confirm_login()
 {
     auto self(shared_from_this());
-    std::string msg = "All good\n";
 
-    boost::asio::async_write(socket_, boost::asio::buffer(msg),
-        [this, self](boost::system::error_code ec, std::size_t /*length*/)
-        {
-            if (!ec)
+    boost::asio::async_write(socket_, 
+        boost::asio::buffer("LOGIN_OK\n"),
+        [this, self](boost::system::error_code error, std::size_t){
+            if (!error)
                 read_password();
-            else
+            else 
             {
-                auto it = std::find(sessions_.begin(), sessions_.end(), self);
-                if (it != sessions_.end())
-                {
-                    sessions_.erase(it);
-                    logins_.erase(User_login); // Освобождаем логин при ошибке
-                }
+                logins_.erase(User_login);
+                socket_.close();
             }
+        });
+}
+
+void ChatSession::send_login_taken()
+{
+    auto self(shared_from_this());
+
+    boost::asio::async_write(socket_, boost::asio::buffer("LOGIN_TAKEN\n"),
+        [this, self](boost::system::error_code error, std::size_t)
+        {
+            if (!error)
+                // Даем клиенту еще попытку
+                read_login();
+            else 
+                socket_.close();
         });
 }
 
 void ChatSession::send_confirm_password()
 {
     auto self(shared_from_this());
-    std::string msg = "All good\n";
 
-    boost::asio::async_write(socket_, boost::asio::buffer(msg),
-        [this, self](boost::system::error_code ec, std::size_t /*length*/)
+    boost::asio::async_write(socket_, boost::asio::buffer("Welcome, " + self->getLogin() + "!\n"),
+        [this, self](boost::system::error_code error, std::size_t)
         {
-            if (!ec)
+            if (!error)
                 read_message();
-            else
-            {
-                auto it = std::find(sessions_.begin(), sessions_.end(), self);
-                if (it != sessions_.end())
-                {
-                    sessions_.erase(it);
-                    logins_.erase(User_login);
-                }
-            }
         });
 }
 
@@ -179,7 +160,8 @@ void ChatSession::read_password()
         {
             if (!ec)
             {
-                if (User_login.empty()) {
+                if (User_login.empty()) 
+                {
                     // Если вдруг нет логина (не должно происходить)
                     socket_.close();
                     return;
@@ -190,13 +172,7 @@ void ChatSession::read_password()
                 std::cout << User_login << " connected successfully\n";
                 
                 // Отправляем подтверждение авторизации
-                boost::asio::async_write(socket_, 
-                    boost::asio::buffer("Welcome, " + self->getLogin() + "!\n"),
-                    [this, self](boost::system::error_code error, std::size_t){
-                        if (!error) {
-                            read_message();
-                        }
-                    });
+                send_confirm_password();
             }
             else
             {

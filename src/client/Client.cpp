@@ -102,30 +102,16 @@ void Client::wait_confirm_login()
                 std::cout << "This login is already taken. Please choose another one.\n";
                 input_login();
                 // Отправляем новый логин и снова ждем подтверждения
-                boost::asio::async_write(socket, boost::asio::buffer(User_login + '\n'),
-                    [this](boost::system::error_code ec, std::size_t /*length*/)
-                    {
-                        if (!ec)
-                            wait_confirm_login();  // <- снова ждем подтверждение
-                        else
-                        {
-                            std::cerr << "Send login error: " << ec.message() << "\n";
-                            socket.close();
-                        }
-                    });
+                send_login();
             }
             else if (response == "LOGIN_OK\n")  
             {   
                 input_password();
                 send_password();
-            }
-            
-
-                
+            }                
         }
         else
         {
-            
             socket.close();
         }
     });

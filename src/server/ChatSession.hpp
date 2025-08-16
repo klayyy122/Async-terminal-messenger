@@ -36,6 +36,7 @@ private:
     void read_login();
     void read_password();
     void send_confirm_login();
+    void send_login_taken();
     void send_confirm_password();
 
     tcp::socket socket_;
