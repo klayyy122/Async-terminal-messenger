@@ -8,6 +8,7 @@ void ChatSession::deliver(const std::string& message)
             write_message();
 }
 
+//чтение сообщения от пользователя и отправка его всем остальным
 void ChatSession::read_message()
 {
     auto self(shared_from_this());
@@ -38,6 +39,7 @@ void ChatSession::read_message()
         });
 }
 
+//отправка сообщения пользователю
 void ChatSession::write_message()
 {
     auto self(shared_from_this());
@@ -66,6 +68,7 @@ void ChatSession::authorization()
     read_login();
 }
 
+//чтение логина отправляемого клиентом
 void ChatSession::read_login()
 {
     auto self(shared_from_this());
@@ -93,6 +96,7 @@ void ChatSession::read_login()
         });
 }
 
+//отправка подтверждения того что логин пришёл
 void ChatSession::send_confirm_login()
 {
     auto self(shared_from_this());
@@ -113,6 +117,7 @@ void ChatSession::send_confirm_login()
         });
 }
 
+//отправка подтверждения что пароль пришёл (пока не используется)
 void ChatSession::send_confirm_password()
 {
     auto self(shared_from_this());
@@ -133,6 +138,7 @@ void ChatSession::send_confirm_password()
         });
 }
 
+//чтение пароля отправленного пользователем
 void ChatSession::read_password()
 {
     auto self(shared_from_this());

@@ -48,7 +48,9 @@ void Client::write()
 
 void Client::input_login_and_password()
 {
-    do
+    //ожидание ввода логина и пароля пользователя, 
+    //если логин и пароль не должны быть больше 32 символов и не должны быть пустыми
+    do  
     {
         User_login.erase(User_login.begin(), User_login.end());
         std::cout << "Введите логин: ";
@@ -65,9 +67,13 @@ void Client::input_login_and_password()
 
 void Client::send_login_and_password()
 {
+    //Сначала отправляется логин, затем будет ожидание подтверждения
+    //что логин пришёл успешно и можно отправлять пароль,
+    //это сделано потому что елси отправлять  их последовательно то пароль будет утерян
     send_login();
 }
 
+//Отправляет логин серверу
 void Client::send_login()
 {
     boost::asio::async_write(socket, boost::asio::buffer(User_login + '\n'),
@@ -82,6 +88,7 @@ void Client::send_login()
         });
 }
 
+//Ожидание подтверждения логина
 void Client::wait_confirm_login()
 {
     boost::asio::async_read_until(socket, boost::asio::dynamic_buffer(read_buffer), '\n',
@@ -108,6 +115,7 @@ void Client::wait_confirm_login()
     });
 }
 
+//Ожидание подтверждения пароля (пока не использовано)
 void Client::wait_confirm_password()
 {
     boost::asio::async_read_until(socket, boost::asio::dynamic_buffer(read_buffer), '\n',
@@ -129,6 +137,7 @@ void Client::wait_confirm_password()
     });
 }
 
+//отправка пароля серверу
 void Client::send_password()
 {
     //костыль, чтобы дать время серверу обработать логин и только потом отправить серверу пароль
