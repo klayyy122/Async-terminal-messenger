@@ -13,7 +13,6 @@ void Client::read()
             }
             else
             {
-                std::cout << "qwfqwrfqwefqw" << std::endl;
                 std::cerr << "Read error: " << ec.message() << "\n";
                 socket.close();
             }
@@ -83,7 +82,8 @@ void Client::send_login()
                 wait_confirm_login();
             else
             {
-                ;
+                std::cerr << "Send login error: " << ec.message() << "\n";
+                socket.close();;
             }
         });
 }
@@ -109,7 +109,7 @@ void Client::wait_confirm_login()
         }
         else
         {
-            std::cerr << "Read error: " << ec.message() << "\n";
+            std::cerr << "Read confirm error: " << ec.message() << "\n";
             socket.close();
         }
     });
@@ -131,7 +131,7 @@ void Client::wait_confirm_password()
         }
         else
         {
-            std::cerr << "Read error: " << ec.message() << "\n";
+            std::cerr << "Read confirm error: " << ec.message() << "\n";
             socket.close();
         }
     });
@@ -142,12 +142,20 @@ void Client::send_password()
 {
     //костыль, чтобы дать время серверу обработать логин и только потом отправить серверу пароль
     boost::asio::async_write(socket, boost::asio::buffer(User_password + '\n'), 
-        [this](boost::system::error_code /*ec*/, std::size_t /*length*/)
+        [this](boost::system::error_code ec, std::size_t /*length*/)
         {
-            std::cout << "Auth success" << std::endl;
-            // Запускаем чтение в основном потоке io_context
-            read();
-            // Запускаем запись в отдельном потоке
-            write();
+            if (!ec)
+            {
+                std::cout << "Auth success" << std::endl;
+                // Запускаем чтение в основном потоке io_context
+                read();
+                // Запускаем запись в отдельном потоке
+                write();
+            }
+            else
+            {
+                std::cerr << "Write error: " << ec.message() << "\n";
+                socket.close();
+            }
         });
 }
