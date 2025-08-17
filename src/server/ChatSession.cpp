@@ -30,7 +30,7 @@ void ChatSession::read_message()
                 else 
                 {
                     if (auto room = current_room_.lock())
-                        room->Broadcast(getLogin() + ": " + msg, shared_from_this());
+                        room->Broadcast(msg, shared_from_this());
                     else
                         deliver("You must join a room first (/join_room <name>)\n");
                 }
@@ -79,7 +79,7 @@ void ChatSession::write_message()
 
 void ChatSession::handle_command(const std::string& command) 
 {
-    std::cout << "Debug - Received command: '" << command << "'" << std::endl;
+    std::cout << "Debug - Received command: " << command << std::endl;
 
     // Удаляем возможные пробелы и переносы строк
     std::string trimmed_cmd = command;
@@ -89,10 +89,10 @@ void ChatSession::handle_command(const std::string& command)
         list_rooms();
     }
     else if (trimmed_cmd.find("/join_room ") == 0) {
-        join_room(trimmed_cmd.substr(10)); // Берем все после "/join_room "
+        join_room(trimmed_cmd.substr(11)); // Берем все после "/join_room "
     }
     else if (trimmed_cmd.find("/create_room ") == 0) {
-        create_room(trimmed_cmd.substr(12)); // Берем все после "/create_room "
+        create_room(trimmed_cmd.substr(13)); // Берем все после "/create_room "
     }
     else if (trimmed_cmd == "/leave_room") {
         leave_room();
