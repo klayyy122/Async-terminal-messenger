@@ -41,11 +41,10 @@ private:
     void authorization();
     void read_login();
     void read_password();
-    void send_confirm_login();
-    void send_login_taken();
     void send_confirm_password();
-    void create_room(const std::string& room_name);
     void read_new_password();
+    void create_room(const std::string& room_name);
+    void ProcessingMessage(const std::string& msg);
 
     tcp::socket socket_;
     std::string read_buffer_;

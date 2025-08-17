@@ -27,16 +27,7 @@ void ChatSession::read_message()
                 std::string msg = read_buffer_.substr(0, length);
                 read_buffer_.erase(0, length);
 
-                std::cout << msg << std::endl;
-                if (msg[User_login.size() + 3] == '/') 
-                    handle_command(msg.substr(User_login.size() + 3, msg.size() - 1));
-                else 
-                {
-                    if (auto room = current_room_.lock())
-                        room->Broadcast(msg, shared_from_this());
-                    else
-                        deliver("You must join a room first (/join_room <name>)\n");
-                }
+                ProcessingMessage(msg);
                 read_message();
             } 
             else 
@@ -53,6 +44,19 @@ void ChatSession::read_message()
                 }
             }
         });
+}
+
+void ChatSession::ProcessingMessage(const std::string& msg)
+{
+    if (msg[User_login.size() + 3] == '/') 
+        handle_command(msg.substr(User_login.size() + 3, msg.size() - 1));
+    else 
+    {
+        if (auto room = current_room_.lock())
+            room->Broadcast(msg, shared_from_this());
+        else
+            deliver("You must join a room first (/join_room <name>)\n");
+    }
 }
 
 void ChatSession::write_message()
@@ -74,9 +78,7 @@ void ChatSession::write_message()
                 if (it != sessions_.end())
                 {
                     sessions_.erase(it);
-                    
                     logins_.erase(User_login); // Освобождаем логин при отключении
-                    
                 }
             }
         });
@@ -84,60 +86,56 @@ void ChatSession::write_message()
 
 void ChatSession::handle_command(const std::string& command) 
 {
-    std::cout << "Debug - Received command: " << command << std::endl;
+    std::cout << "Debug - Received command: " << command;
 
     // Удаляем возможные пробелы и переносы строк
     std::string trimmed_cmd = command;
     trimmed_cmd.erase(trimmed_cmd.find_last_not_of(" \n\r\t") + 1);
 
-    if (trimmed_cmd == "/room_list")
-        list_rooms();
-    else if (trimmed_cmd.find("/join_room ") == 0)
-        join_room(trimmed_cmd.substr(11)); // Берем все после "/join_room "
-    else if (trimmed_cmd.find("/create_room ") == 0)
-        create_room(trimmed_cmd.substr(13)); // Берем все после "/create_room "
-    else if (trimmed_cmd == "/leave_room")
-        leave_room();
-    else 
-        deliver("Unknown command. Available commands:\n"
+    if (trimmed_cmd == "/room_list")    list_rooms();
+    else if (trimmed_cmd.find("/join_room ") == 0)  join_room(trimmed_cmd.substr(11)); // Берем все после "/join_room "
+    else if (trimmed_cmd.find("/create_room ") == 0)    create_room(trimmed_cmd.substr(13)); // Берем все после "/create_room "
+    else if (trimmed_cmd == "/leave_room")  leave_room();
+    else deliver("Unknown command. Available commands:\n"
                "/room_list\n"
                "/join_room <name>\n"
                "/create_room <name>\n"
                "/leave_room\n");
 }
 
-void ChatSession::create_room(const std::string& room_name) {
+void ChatSession::create_room(const std::string& room_name) 
+{
     // Удаляем возможные пробелы и переносы строки
-    std::string trimmed_name = room_name;
-    trimmed_name.erase(trimmed_name.find_last_not_of(" \n\r\t") + 1);
+    std::string name = room_name;
+    name.erase(name.find_last_not_of(" \n\r\t") + 1);
 
-    if (trimmed_name.empty()) 
+    if (name.empty()) 
     {
         deliver("Error: Room name cannot be empty\n");
         return;
     }
 
     // Проверяем, существует ли уже комната
-    if (Rooms_list.find(trimmed_name) != Rooms_list.end()) 
+    if (Rooms_list.find(name) != Rooms_list.end()) 
     {
-        deliver("Error: Room '" + trimmed_name + "' already exists\n");
+        deliver("Error: Room '" + name + "' already exists\n");
         return;
     }
 
     // Создаем новую комнату
-    Rooms_list[trimmed_name] = std::make_shared<ChatRoom>(trimmed_name);
-    deliver("Room '" + trimmed_name + "' created successfully\n");
+    Rooms_list[name] = std::make_shared<ChatRoom>(name);
+    deliver("Room '" + name + "' created successfully\n");
 
     // Автоматически присоединяемся к созданной комнате
-    join_room(trimmed_name);
+    join_room(name);
 }
 
 void ChatSession::join_room(const std::string& room_name) 
 {
-    std::string trimmed_name = room_name;
-    trimmed_name.erase(trimmed_name.find_last_not_of(" \n\r\t") + 1);
+    std::string name = room_name;
+    name.erase(name.find_last_not_of(" \n\r\t") + 1);
 
-    if (trimmed_name.empty()) 
+    if (name.empty()) 
     {
         deliver("Error: Room name cannot be empty\n");
         return;
@@ -149,19 +147,20 @@ void ChatSession::join_room(const std::string& room_name)
         return;
     }
 
-    auto it = Rooms_list.find(trimmed_name);
+    auto it = Rooms_list.find(name);
     if (it == Rooms_list.end()) 
     {
-        deliver("Error: Room '" + trimmed_name + "' does not exist\n");
+        deliver("Error: Room '" + name + "' does not exist\n");
         return;
     }
 
     current_room_ = it->second;
     it->second->Connect(shared_from_this());
-    deliver("Joined room: " + trimmed_name + "\n");
+    deliver("Joined room: " + name + "\n");
 }
 
-void ChatSession::leave_room() {
+void ChatSession::leave_room() 
+{
     if (auto room = current_room_.lock()) 
     {
         room->Disconnect(shared_from_this());
@@ -174,7 +173,8 @@ void ChatSession::leave_room() {
     }
 }
 
-void ChatSession::list_rooms() {
+void ChatSession::list_rooms()
+{
     std::string response = "Available rooms:\n";
 
     for (const auto& room_pair : Rooms_list) 
@@ -227,37 +227,7 @@ void ChatSession::read_login() {
         });
 }
 
-void ChatSession::send_confirm_login()
-{
-    auto self(shared_from_this());
 
-    boost::asio::async_write(socket_, 
-        boost::asio::buffer("LOGIN_OK\n"),
-        [this, self](boost::system::error_code error, std::size_t){
-            if (!error)
-                read_password();
-            else 
-            {
-                logins_.erase(User_login);
-                socket_.close();
-            }
-        });
-}
-
-void ChatSession::send_login_taken()
-{
-    auto self(shared_from_this());
-
-    boost::asio::async_write(socket_, boost::asio::buffer("LOGIN_TAKEN\n"),
-        [this, self](boost::system::error_code error, std::size_t)
-        {
-            if (!error)
-                // Даем клиенту еще попытку
-                read_login();
-            else 
-                socket_.close();
-        });
-}
 
 void ChatSession::send_confirm_password()
 {

@@ -1,24 +1,5 @@
 #include "Client.hpp"
 
-// void Client::read()
-// {
-//     boost::asio::async_read_until(socket, boost::asio::dynamic_buffer(read_buffer), '\n',
-//         [this](boost::system::error_code ec, std::size_t length)
-//         {
-//             if (!ec)
-//             {
-//                 std::cout << read_buffer.substr(0, length);
-//                 read_buffer.erase(0, length);
-//                 read(); // Continue reading
-//             }
-//             else
-//             {
-//                 std::cerr << "Read error: " << ec.message() << "\n";
-//                 socket.close();
-//             }
-//         });
-// }
-
 void Client::write()
 {
     boost::asio::post([this]()
@@ -28,7 +9,6 @@ void Client::write()
         std::getline(std::cin, write_buffer);
         
         msg += write_buffer + '\n';
-        // write_buffer += '\n'; // Add delimiter
         
         boost::system::error_code ec;
         boost::asio::async_write(socket, boost::asio::buffer(msg),
@@ -98,35 +78,42 @@ void Client::read()
                 read_buffer.erase(0, length);
                 
                 // Обрабатываем ответ сервера
-                if (response == "LOGIN_ALREADY_IN_USE\n") {
+                if (response == "LOGIN_ALREADY_IN_USE\n") 
+                {
                     std::cout << "This login is already in use. Please choose another one.\n";
                     input_login();
                     send_login();
                 }
-                else if (response == "LOGIN_EXISTING\n") {
+                else if (response == "LOGIN_EXISTING\n") 
+                {
                     std::cout << "Enter password for existing account: ";
                     input_password();
                     send_password();
                 }
-                else if (response == "LOGIN_NEW\n") {
+                else if (response == "LOGIN_NEW\n") 
+                {
                     std::cout << "Create password for new account: ";
                     input_password();
                     send_password();
                 }
-                else if (response == "WRONG_PASSWORD\n") {
+                else if (response == "WRONG_PASSWORD\n") 
+                {
                     std::cout << "Wrong password. Try again: ";
                     input_password();
                     send_password();
                 }
-                else if (response == "REGISTRATION_SUCCESS\n") {
+                else if (response == "REGISTRATION_SUCCESS\n") 
+                {
                     std::cout << "Registration successful!\n";
                     start_chat();
                 }
-                else if (response == "LOGIN_SUCCESS\n") {
+                else if (response == "LOGIN_SUCCESS\n") 
+                {
                     std::cout << "Login successful!\n";
                     start_chat();
                 }
-                else {
+                else 
+                {
                     // Выводим другие сообщения от сервера
                     std::cout << response;
                 }
@@ -139,27 +126,6 @@ void Client::read()
                 socket.close();
             }
         });
-}
-//Ожидание подтверждения пароля (пока не использовано)
-void Client::wait_confirm_password()
-{
-    boost::asio::async_read_until(socket, boost::asio::dynamic_buffer(read_buffer), '\n',
-    [this](boost::system::error_code ec, std::size_t length)
-    {
-        if (!ec)
-        {
-            if (read_buffer == "All good\n")
-                {
-                    read_buffer.erase(0, length);
-                    send_password();
-                }
-        }
-        else
-        {
-            std::cerr << "Read confirm error: " << ec.message() << "\n";
-            socket.close();
-        }
-    });
 }
 
 void Client::start_chat()
@@ -178,9 +144,7 @@ void Client::send_password()
         [this](boost::system::error_code ec, std::size_t /*length*/)
         {
             if (!ec)
-            {
                 start_chat();
-            }
             else
             {
                 std::cerr << "Write error: " << ec.message() << "\n";
