@@ -1,8 +1,7 @@
 #include "ChatSession.hpp"
 #include "ChatRoom.hpp"
 // Глобальный набор для хранения занятых логинов
-std::unordered_set<std::string> logins_;
-std::unordered_map<std::string, std::shared_ptr<ChatRoom>> Rooms_list;
+
 
 void ChatSession::deliver(const std::string& message)
 {
@@ -35,14 +34,16 @@ void ChatSession::read_message()
                         deliver("You must join a room first (/join_room <name>)\n");
                 }
                 read_message();
-            } else {
+            } 
+            else 
+            {
                 // При отключении выходим из комнаты
-                if (auto room = current_room_.lock()) {
+                if (auto room = current_room_.lock())
                     room->Disconnect(shared_from_this());
-                }
                 
                 auto it = std::find(sessions_.begin(), sessions_.end(), self);
-                if (it != sessions_.end()) {
+                if (it != sessions_.end()) 
+                {
                     sessions_.erase(it);
                     logins_.erase(User_login);
                 }
@@ -85,25 +86,20 @@ void ChatSession::handle_command(const std::string& command)
     std::string trimmed_cmd = command;
     trimmed_cmd.erase(trimmed_cmd.find_last_not_of(" \n\r\t") + 1);
 
-    if (trimmed_cmd == "/room_list") {
+    if (trimmed_cmd == "/room_list")
         list_rooms();
-    }
-    else if (trimmed_cmd.find("/join_room ") == 0) {
+    else if (trimmed_cmd.find("/join_room ") == 0)
         join_room(trimmed_cmd.substr(11)); // Берем все после "/join_room "
-    }
-    else if (trimmed_cmd.find("/create_room ") == 0) {
+    else if (trimmed_cmd.find("/create_room ") == 0)
         create_room(trimmed_cmd.substr(13)); // Берем все после "/create_room "
-    }
-    else if (trimmed_cmd == "/leave_room") {
+    else if (trimmed_cmd == "/leave_room")
         leave_room();
-    }
-    else {
+    else 
         deliver("Unknown command. Available commands:\n"
                "/room_list\n"
                "/join_room <name>\n"
                "/create_room <name>\n"
                "/leave_room\n");
-    }
 }
 
 void ChatSession::create_room(const std::string& room_name) {
@@ -111,13 +107,15 @@ void ChatSession::create_room(const std::string& room_name) {
     std::string trimmed_name = room_name;
     trimmed_name.erase(trimmed_name.find_last_not_of(" \n\r\t") + 1);
 
-    if (trimmed_name.empty()) {
+    if (trimmed_name.empty()) 
+    {
         deliver("Error: Room name cannot be empty\n");
         return;
     }
 
     // Проверяем, существует ли уже комната
-    if (Rooms_list.find(trimmed_name) != Rooms_list.end()) {
+    if (Rooms_list.find(trimmed_name) != Rooms_list.end()) 
+    {
         deliver("Error: Room '" + trimmed_name + "' already exists\n");
         return;
     }
@@ -130,22 +128,26 @@ void ChatSession::create_room(const std::string& room_name) {
     join_room(trimmed_name);
 }
 
-void ChatSession::join_room(const std::string& room_name) {
+void ChatSession::join_room(const std::string& room_name) 
+{
     std::string trimmed_name = room_name;
     trimmed_name.erase(trimmed_name.find_last_not_of(" \n\r\t") + 1);
 
-    if (trimmed_name.empty()) {
+    if (trimmed_name.empty()) 
+    {
         deliver("Error: Room name cannot be empty\n");
         return;
     }
 
-    if (auto room = current_room_.lock()) {
+    if (auto room = current_room_.lock()) 
+    {
         deliver("You are already in room: " + room->GetName() + "\n");
         return;
     }
 
     auto it = Rooms_list.find(trimmed_name);
-    if (it == Rooms_list.end()) {
+    if (it == Rooms_list.end()) 
+    {
         deliver("Error: Room '" + trimmed_name + "' does not exist\n");
         return;
     }
@@ -156,18 +158,23 @@ void ChatSession::join_room(const std::string& room_name) {
 }
 
 void ChatSession::leave_room() {
-    if (auto room = current_room_.lock()) {
+    if (auto room = current_room_.lock()) 
+    {
         room->Disconnect(shared_from_this());
         current_room_.reset();
         deliver("You left the room\n");
-    } else {
+    } 
+    else 
+    {
         deliver("You are not in any room\n");
     }
 }
 
 void ChatSession::list_rooms() {
     std::string response = "Available rooms:\n";
-    for (const auto& room_pair : Rooms_list) {
+
+    for (const auto& room_pair : Rooms_list) 
+    {
         const std::string& name = room_pair.first;
         const std::shared_ptr<ChatRoom>& room = room_pair.second;
         response += "- " + name + " (" + std::to_string(room->GetUserCount()) + " users)\n";

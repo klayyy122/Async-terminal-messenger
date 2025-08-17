@@ -55,4 +55,7 @@ private:
     std::weak_ptr<ChatRoom> current_room_;
     std::string User_login;
     std::string User_password;
+
+    static std::unordered_set<std::string> logins_;
+    static std::unordered_map<std::string, std::shared_ptr<ChatRoom>> Rooms_list;
 };
