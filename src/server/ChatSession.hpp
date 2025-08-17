@@ -5,6 +5,7 @@
 #include <deque>
 #include <boost/asio.hpp>
 #include <unordered_set>
+#include <unordered_map>
 
 
 using boost::asio::ip::tcp;
@@ -20,10 +21,8 @@ public:
     {
         authorization();
     }
-    ~ChatSession(){
-        std::cout << User_login + " disconnected\n";
-        socket_.close();
-    }
+    ~ChatSession();
+
     void deliver(const std::string& message);
 
     std::string getLogin() const noexcept(true){
@@ -46,6 +45,7 @@ private:
     void send_login_taken();
     void send_confirm_password();
     void create_room(const std::string& room_name);
+    void read_new_password();
 
     tcp::socket socket_;
     std::string read_buffer_;
@@ -58,4 +58,6 @@ private:
 
     static std::unordered_set<std::string> logins_;
     static std::unordered_map<std::string, std::shared_ptr<ChatRoom>> Rooms_list;
+    static std::unordered_map<std::string, std::string> registered_users_; // login -> password
+    static std::unordered_set<std::string> active_users_; // currently logged in
 };

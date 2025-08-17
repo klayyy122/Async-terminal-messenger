@@ -1,6 +1,10 @@
 #include "ChatSession.hpp"
 #include "ChatRoom.hpp"
 // Глобальный набор для хранения занятых логинов
+std::unordered_set<std::string> ChatSession::logins_;
+std::unordered_map<std::string, std::shared_ptr<ChatRoom>> ChatSession::Rooms_list;
+std::unordered_map<std::string, std::string> ChatSession::registered_users_;
+std::unordered_set<std::string> ChatSession::active_users_;
 
 
 void ChatSession::deliver(const std::string& message)
@@ -187,37 +191,39 @@ void ChatSession::authorization()
     read_login();
 }
 
-void ChatSession::read_login()
-{
+void ChatSession::read_login() {
     auto self(shared_from_this());
 
     boost::asio::async_read_until(socket_, boost::asio::dynamic_buffer(read_buffer_), '\n',
-        [this, self](boost::system::error_code ec, std::size_t length)
-        {
+        [this, self](boost::system::error_code ec, std::size_t length) {
             if (!ec) 
             {
                 std::string received_login = read_buffer_.substr(0, length-1); // Убираем \n
                 read_buffer_.clear();
                 
-                if (logins_.find(received_login) == logins_.end())
-                {
-                    // Логин свободен
+                // Проверяем, занят ли логин в данный момент
+                if (active_users_.find(received_login) != active_users_.end()) {
+                    deliver("LOGIN_ALREADY_IN_USE\n");
+                    read_login(); // Даем попробовать другой логин
+                    return;
+                }
+                
+                // Проверяем, зарегистрирован ли пользователь
+                auto it = registered_users_.find(received_login);
+                if (it != registered_users_.end()) {
+                    // Пользователь существует - запрашиваем пароль
                     User_login = received_login;
-                    logins_.insert(User_login);
-                       
-                    // Отправляем подтверждение клиенту
-                    send_confirm_login();
+                    deliver("LOGIN_EXISTING\n");
+                    read_password();
+                } else {
+                    // Новый пользователь - запрашиваем пароль для регистрации
+                    User_login = received_login;
+                    deliver("LOGIN_NEW\n");
+                    read_new_password();
                 }
-                else
-                {
-                    // Логин занят
-                    send_login_taken();
-                }
-            } 
-            else 
-            {
+            } else {
                 socket_.close();
-            }            
+            }
         });
 }
 
@@ -265,34 +271,60 @@ void ChatSession::send_confirm_password()
         });
 }
 
-void ChatSession::read_password()
-{
+void ChatSession::read_new_password() {
     auto self(shared_from_this());
 
     boost::asio::async_read_until(socket_, boost::asio::dynamic_buffer(read_buffer_), '\n',
-        [this, self](boost::system::error_code ec, std::size_t length)
-        {
-            if (!ec)
-            {
-                if (User_login.empty()) 
-                {
-                    // Если вдруг нет логина (не должно происходить)
-                    socket_.close();
-                    return;
-                }
-                
-                User_password = read_buffer_.substr(0, length-1);
+        [this, self](boost::system::error_code ec, std::size_t length) {
+            if (!ec) {
+                std::string new_password = read_buffer_.substr(0, length-1);
                 read_buffer_.clear();
-                std::cout << User_login << " connected successfully\n";
                 
-                // Отправляем подтверждение авторизации
+                // Регистрируем нового пользователя
+                registered_users_[User_login] = new_password;
+                active_users_.insert(User_login);
+                logins_.insert(User_login);
+                
+                deliver("REGISTRATION_SUCCESS\n");
                 send_confirm_password();
-            }
-            else
-            {
-                logins_.erase(User_login);
-                
+            } else {
                 socket_.close();
             }
         });
+}
+
+void ChatSession::read_password() {
+    auto self(shared_from_this());
+
+    boost::asio::async_read_until(socket_, boost::asio::dynamic_buffer(read_buffer_), '\n',
+        [this, self](boost::system::error_code ec, std::size_t length) {
+            if (!ec) {
+                std::string password = read_buffer_.substr(0, length-1);
+                read_buffer_.clear();
+                
+                // Проверяем пароль
+                if (registered_users_[User_login] == password) {
+                    // Пароль верный - авторизуем
+                    active_users_.insert(User_login);
+                    logins_.insert(User_login);
+                    deliver("LOGIN_SUCCESS\n");
+                    send_confirm_password();
+                } else {
+                    // Пароль неверный - запрашиваем снова
+                    deliver("WRONG_PASSWORD\n");
+                    read_password();
+                }
+            } else {
+                socket_.close();
+            }
+        });
+}
+
+ChatSession::~ChatSession() {
+    std::cout << User_login + " disconnected\n";
+    if (!User_login.empty()) {
+        active_users_.erase(User_login);
+        logins_.erase(User_login);
+    }
+    socket_.close();
 }

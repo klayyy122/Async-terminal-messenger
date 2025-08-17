@@ -90,31 +90,55 @@ void Client::send_login()
 void Client::wait_confirm_login()
 {
     boost::asio::async_read_until(socket, boost::asio::dynamic_buffer(read_buffer), '\n',
-    [this](boost::system::error_code ec, std::size_t length)
-    {
-        if (!ec)
-        {   
-            std::string response = read_buffer.substr(0, length);
-            read_buffer.clear();
-            
-            if (response == "LOGIN_TAKEN\n")
-            {
-                std::cout << "This login is already taken. Please choose another one.\n";
-                input_login();
-                // Отправляем новый логин и снова ждем подтверждения
-                send_login();
-            }
-            else if (response == "LOGIN_OK\n")  
-            {   
-                input_password();
-                send_password();
-            }                
-        }
-        else
+        [this](boost::system::error_code ec, std::size_t length)
         {
-            socket.close();
-        }
-    });
+            if (!ec)
+            {
+                std::string response = read_buffer.substr(0, length);
+                read_buffer.erase(0, length);
+                
+                // Обрабатываем ответ сервера
+                if (response == "LOGIN_ALREADY_IN_USE\n") {
+                    std::cout << "This login is already in use. Please choose another one.\n";
+                    input_login();
+                    send_login();
+                }
+                else if (response == "LOGIN_EXISTING\n") {
+                    std::cout << "Enter password for existing account: ";
+                    input_password();
+                    send_password();
+                }
+                else if (response == "LOGIN_NEW\n") {
+                    std::cout << "Create password for new account: ";
+                    input_password();
+                    send_password();
+                }
+                else if (response == "WRONG_PASSWORD\n") {
+                    std::cout << "Wrong password. Try again: ";
+                    input_password();
+                    send_password();
+                }
+                else if (response == "REGISTRATION_SUCCESS\n") {
+                    std::cout << "Registration successful!\n";
+                    start_chat();
+                }
+                else if (response == "LOGIN_SUCCESS\n") {
+                    std::cout << "Login successful!\n";
+                    start_chat();
+                }
+                else {
+                    // Выводим другие сообщения от сервера
+                    std::cout << response;
+                }
+                
+                read(); // Continue reading
+            }
+            else
+            {
+                std::cerr << "Read error: " << ec.message() << "\n";
+                socket.close();
+            }
+        });
 }
 //Ожидание подтверждения пароля (пока не использовано)
 void Client::wait_confirm_password()
@@ -138,6 +162,14 @@ void Client::wait_confirm_password()
     });
 }
 
+void Client::start_chat()
+{
+    // Запускаем чтение сообщений
+    read();
+    // Запускаем ввод сообщений
+    write();
+}
+
 //отправка пароля серверу
 void Client::send_password()
 {
@@ -147,11 +179,7 @@ void Client::send_password()
         {
             if (!ec)
             {
-                
-                // Запускаем чтение в основном потоке io_context
-                read();
-                // Запускаем запись в отдельном потоке
-                write();
+                start_chat();
             }
             else
             {

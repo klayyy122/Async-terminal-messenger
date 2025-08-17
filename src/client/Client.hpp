@@ -25,6 +25,7 @@ private:
     void send_password();
     void wait_confirm_login();
     void wait_confirm_password();
+    void start_chat();
 
 public:
     Client(boost::asio::io_context& io_context, tcp::socket&& sock)
