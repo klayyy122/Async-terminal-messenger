@@ -22,6 +22,7 @@ public:
         authorization();
     }
     ~ChatSession();
+    
 
     void deliver(const std::string& message);
 
@@ -35,7 +36,7 @@ private:
     void join_room(const std::string& room_name);
     void leave_room();
     void list_rooms();
-
+    void show_help();
     void read_message();
     void write_message();
     void authorization();

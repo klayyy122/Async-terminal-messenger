@@ -37,7 +37,7 @@ void Client::input_login(){
 void Client::input_password(){
  do
     {
-        User_password.erase(User_password.begin(), User_password.end());
+        User_password.clear();
         std::cout << "Enter password: ";
         std::getline(std::cin, User_password);
     } while (User_password.size() == 0 ||  User_password.size() > 32);
@@ -51,31 +51,33 @@ void Client::send_login_and_password()
     send_login();
 }
 
-//Отправляет логин серверу
 void Client::send_login()
 {
     boost::asio::async_write(socket, boost::asio::buffer(User_login + '\n'),
         [this](boost::system::error_code ec, std::size_t /*length*/)
         {
             if (!ec)
-                read();
+            {
+                read(); // Ждем ответ от сервера
+            }
             else
             {
                 std::cerr << "Send login error: " << ec.message() << "\n";
-                socket.close();;
+                socket.close();
             }
         });
 }
-
 void Client::read()
 {
     boost::asio::async_read_until(socket, boost::asio::dynamic_buffer(read_buffer), '\n',
         [this](boost::system::error_code ec, std::size_t length)
-        {
+        {  
             if (!ec)
             {
                 std::string response = read_buffer.substr(0, length);
                 read_buffer.erase(0, length);
+                
+                std::cout << "Received from server: " << response; // DEBUG
                 
                 // Обрабатываем ответ сервера
                 if (response == "LOGIN_ALREADY_IN_USE\n") 
@@ -102,32 +104,25 @@ void Client::read()
                     input_password();
                     send_password();
                 }
-                else if (response == "REGISTRATION_SUCCESS\n") 
-                {
-                    std::cout << "Registration successful!\n";
-                    start_chat();
-                }
-                else if (response == "LOGIN_SUCCESS\n") 
-                {
-                    std::cout << "Login successful!\n";
-                    start_chat();
-                }
+                else if (response == "REGISTRATION_SUCCESS\n" || response == "LOGIN_SUCCESS\n") 
+{
+    std::cout << "Authentication successful! You can start chatting now.\n";
+    start_chat(); 
+}
                 else 
                 {
-                    // Выводим другие сообщения от сервера
+                    // Выводим обычные сообщения чата
                     std::cout << response;
+                    read(); // Продолжаем чтение
                 }
-                
-                read(); // Continue reading
             }
             else
             {
-                std::cerr << "Read error: " << ec.message() << "\n";
+                std::cerr << "Server is not working, please try again later!\n";
                 socket.close();
             }
         });
 }
-
 void Client::start_chat()
 {
     // Запускаем чтение сообщений
@@ -139,16 +134,46 @@ void Client::start_chat()
 //отправка пароля серверу
 void Client::send_password()
 {
-    //костыль, чтобы дать время серверу обработать логин и только потом отправить серверу пароль
     boost::asio::async_write(socket, boost::asio::buffer(User_password + '\n'), 
         [this](boost::system::error_code ec, std::size_t /*length*/)
         {
             if (!ec)
-                start_chat();
+            {
+                // После отправки пароля просто ждем ответа от сервера
+                // read() уже запущен и будет обрабатывать ответ
+                std::cout << "Password sent, waiting for response...\n";
+                read();
+            }
             else
             {
                 std::cerr << "Write error: " << ec.message() << "\n";
                 socket.close();
             }
         });
+}
+
+void Client::start_chatting()
+{
+    // Запускаем асинхронное чтение сообщений от сервера
+    read();
+    
+    // Запускаем ввод сообщений в отдельном потоке
+    std::thread([this]() {
+        while (socket.is_open()) {
+            std::string msg;
+            std::getline(std::cin, msg);
+            
+            if (!msg.empty()) {
+                std::string full_msg = '[' + User_login + "]: " + msg + '\n';
+                
+                boost::system::error_code ec;
+                boost::asio::write(socket, boost::asio::buffer(full_msg), ec);
+                
+                if (ec) {
+                    std::cerr << "Write error: " << ec.message() << "\n";
+                    break;
+                }
+            }
+        }
+    }).detach();
 }

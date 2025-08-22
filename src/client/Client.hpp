@@ -26,6 +26,7 @@ private:
     void wait_confirm_login();
     void wait_confirm_password();
     void start_chat();
+    void start_chatting();
 
 public:
     Client(boost::asio::io_context& io_context, tcp::socket&& sock)
@@ -37,7 +38,7 @@ public:
     }
 
     ~Client()
-    {
+    {   
         socket.close();
     }
 };

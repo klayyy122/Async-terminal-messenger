@@ -233,11 +233,18 @@ void ChatSession::send_confirm_password()
 {
     auto self(shared_from_this());
 
-    boost::asio::async_write(socket_, boost::asio::buffer("Welcome, " + self->getLogin() + "!\n"),
+    // Отправляем приветственное сообщение
+    std::string welcome_msg = "Welcome, " + User_login + "!\n";
+    
+    boost::asio::async_write(socket_, boost::asio::buffer(welcome_msg),
         [this, self](boost::system::error_code error, std::size_t)
         {
-            if (!error)
+            if (!error) {
+                // Только после успешной отправки приветствия начинаем обычное чтение
                 read_message();
+            } else {
+                socket_.close();
+            }
         });
 }
 
@@ -257,6 +264,7 @@ void ChatSession::read_new_password() {
                 
                 deliver("REGISTRATION_SUCCESS\n");
                 send_confirm_password();
+                std::cout << getLogin() + " connected to server\n";
             } else {
                 socket_.close();
             }
@@ -282,7 +290,7 @@ void ChatSession::read_password() {
                 } else {
                     // Пароль неверный - запрашиваем снова
                     deliver("WRONG_PASSWORD\n");
-                    read_password();
+                    read_password(); // Продолжаем ожидать пароль
                 }
             } else {
                 socket_.close();

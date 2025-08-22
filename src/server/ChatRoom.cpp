@@ -27,4 +27,4 @@ void ChatRoom::Broadcast(const std::string& message, std::shared_ptr<ChatSession
     for (auto it = sessions_.begin(); it != sessions_.end(); ++it)
         if (!sender || it->second != sender)
             it->second->deliver("[" + room_name + "] " + message);
-}
+}   
