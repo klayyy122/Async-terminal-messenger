@@ -4,7 +4,7 @@
 #include <deque>
 #include <boost/asio.hpp>
 
-#include "ChatServer.hpp"
+#include "server.hpp"
 
 using boost::asio::ip::tcp;
 

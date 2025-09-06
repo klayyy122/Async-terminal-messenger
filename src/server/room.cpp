@@ -1,5 +1,5 @@
-#include "ChatRoom.hpp"
-#include "ChatSession.hpp"
+#include "room.hpp"
+#include "chat_session.hpp"
 
 void ChatRoom::Connect(std::shared_ptr<ChatSession> session) 
 {

@@ -3,7 +3,7 @@
 #include <thread>
 #include <atomic>
 
-#include "Client.hpp"
+#include "client.hpp"
 
 
 
@@ -17,7 +17,7 @@ int main()
 
         Client c(io_context, std::move(socket));
         
-        io_context.run(); // Запускаем обработку асинхронных операций       
+        io_context.run();
     } 
     catch (std::exception& e) 
     {

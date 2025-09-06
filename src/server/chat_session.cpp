@@ -1,6 +1,6 @@
-#include "ChatSession.hpp"
-#include "ChatRoom.hpp"
-// Глобальный набор для хранения занятых логинов
+#include "chat_session.hpp"
+#include "room.hpp"
+
 std::unordered_set<std::string> ChatSession::logins_;
 std::unordered_map<std::string, std::shared_ptr<ChatRoom>> ChatSession::Rooms_list;
 std::unordered_map<std::string, std::string> ChatSession::registered_users_;
@@ -32,7 +32,7 @@ void ChatSession::read_message()
             } 
             else 
             {
-                // При отключении выходим из комнаты
+                
                 if (auto room = current_room_.lock())
                     room->Disconnect(shared_from_this());
                 
@@ -64,7 +64,7 @@ void ChatSession::write_message()
     auto self(shared_from_this());
 
     boost::asio::async_write(socket_, boost::asio::buffer(write_msgs_.front()),
-        [this, self](boost::system::error_code ec, std::size_t /*length*/)
+        [this, self](boost::system::error_code ec, std::size_t )
         {
             if (!ec)
             {
@@ -78,7 +78,7 @@ void ChatSession::write_message()
                 if (it != sessions_.end())
                 {
                     sessions_.erase(it);
-                    logins_.erase(User_login); // Освобождаем логин при отключении
+                    logins_.erase(User_login); 
                 }
             }
         });
@@ -88,24 +88,21 @@ void ChatSession::handle_command(const std::string& command)
 {
     std::cout << "Debug - Received command: " << command;
 
-    // Удаляем возможные пробелы и переносы строк
+    
     std::string trimmed_cmd = command;
     trimmed_cmd.erase(trimmed_cmd.find_last_not_of(" \n\r\t") + 1);
 
     if (trimmed_cmd == "/room_list")    list_rooms();
-    else if (trimmed_cmd.find("/join_room ") == 0)  join_room(trimmed_cmd.substr(11)); // Берем все после "/join_room "
-    else if (trimmed_cmd.find("/create_room ") == 0)    create_room(trimmed_cmd.substr(13)); // Берем все после "/create_room "
+    else if (trimmed_cmd.find("/join_room ") == 0)  join_room(trimmed_cmd.substr(11)); 
+    else if (trimmed_cmd.find("/create_room ") == 0)    create_room(trimmed_cmd.substr(13)); 
     else if (trimmed_cmd == "/leave_room")  leave_room();
-    else deliver("Unknown command. Available commands:\n"
-               "/room_list\n"
-               "/join_room <name>\n"
-               "/create_room <name>\n"
-               "/leave_room\n");
+    else deliver("Unknown command.\n");
 }
 
+//creating a room
 void ChatSession::create_room(const std::string& room_name) 
 {
-    // Удаляем возможные пробелы и переносы строки
+    
     std::string name = room_name;
     name.erase(name.find_last_not_of(" \n\r\t") + 1);
 
@@ -115,18 +112,18 @@ void ChatSession::create_room(const std::string& room_name)
         return;
     }
 
-    // Проверяем, существует ли уже комната
+    //check if room is already exists
     if (Rooms_list.find(name) != Rooms_list.end()) 
     {
         deliver("Error: Room '" + name + "' already exists\n");
         return;
     }
 
-    // Создаем новую комнату
+    // creating a new room
     Rooms_list[name] = std::make_shared<ChatRoom>(name);
     deliver("Room '" + name + "' created successfully\n");
 
-    // Автоматически присоединяемся к созданной комнате
+    //connecting to new room
     join_room(name);
 }
 
@@ -198,25 +195,25 @@ void ChatSession::read_login() {
         [this, self](boost::system::error_code ec, std::size_t length) {
             if (!ec) 
             {
-                std::string received_login = read_buffer_.substr(0, length-1); // Убираем \n
+                std::string received_login = read_buffer_.substr(0, length-1); 
                 read_buffer_.clear();
                 
-                // Проверяем, занят ли логин в данный момент
+                // checking the using of login
                 if (active_users_.find(received_login) != active_users_.end()) {
                     deliver("LOGIN_ALREADY_IN_USE\n");
-                    read_login(); // Даем попробовать другой логин
+                    read_login(); // one more chance
                     return;
                 }
                 
-                // Проверяем, зарегистрирован ли пользователь
+                // check registration
                 auto it = registered_users_.find(received_login);
                 if (it != registered_users_.end()) {
-                    // Пользователь существует - запрашиваем пароль
+                    //waid password
                     User_login = received_login;
                     deliver("LOGIN_EXISTING\n");
                     read_password();
                 } else {
-                    // Новый пользователь - запрашиваем пароль для регистрации
+                    // wait password too( but new)
                     User_login = received_login;
                     deliver("LOGIN_NEW\n");
                     read_new_password();
@@ -233,14 +230,14 @@ void ChatSession::send_confirm_password()
 {
     auto self(shared_from_this());
 
-    // Отправляем приветственное сообщение
+    // welcome message
     std::string welcome_msg = "Welcome, " + User_login + "!\n";
     
     boost::asio::async_write(socket_, boost::asio::buffer(welcome_msg),
         [this, self](boost::system::error_code error, std::size_t)
         {
             if (!error) {
-                // Только после успешной отправки приветствия начинаем обычное чтение
+                //waiting client's messages
                 read_message();
             } else {
                 socket_.close();
@@ -257,7 +254,7 @@ void ChatSession::read_new_password() {
                 std::string new_password = read_buffer_.substr(0, length-1);
                 read_buffer_.clear();
                 
-                // Регистрируем нового пользователя
+                // registration of new client
                 registered_users_[User_login] = new_password;
                 active_users_.insert(User_login);
                 logins_.insert(User_login);
@@ -280,17 +277,17 @@ void ChatSession::read_password() {
                 std::string password = read_buffer_.substr(0, length-1);
                 read_buffer_.clear();
                 
-                // Проверяем пароль
+               // checking password
                 if (registered_users_[User_login] == password) {
-                    // Пароль верный - авторизуем
+                    // password is correct
                     active_users_.insert(User_login);
                     logins_.insert(User_login);
                     deliver("LOGIN_SUCCESS\n");
                     send_confirm_password();
                 } else {
-                    // Пароль неверный - запрашиваем снова
+                    // password isn't  correct
                     deliver("WRONG_PASSWORD\n");
-                    read_password(); // Продолжаем ожидать пароль
+                    read_password(); 
                 }
             } else {
                 socket_.close();

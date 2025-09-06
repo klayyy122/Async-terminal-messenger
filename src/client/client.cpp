@@ -1,4 +1,4 @@
-#include "Client.hpp"
+#include "client.hpp"
 
 void Client::write()
 {
@@ -12,7 +12,7 @@ void Client::write()
         
         boost::system::error_code ec;
         boost::asio::async_write(socket, boost::asio::buffer(msg),
-            [this](boost::system::error_code ec, std::size_t /*length*/)
+            [this](boost::system::error_code ec, std::size_t)
             {
                 if (!ec)
                     write();
@@ -45,20 +45,18 @@ void Client::input_password(){
 
 void Client::send_login_and_password()
 {
-    //Сначала отправляется логин, затем будет ожидание подтверждения
-    //что логин пришёл успешно и можно отправлять пароль,
-    //это сделано потому что елси отправлять  их последовательно то пароль будет утерян
+    // i dont remember what it does)
     send_login();
 }
 
 void Client::send_login()
 {
     boost::asio::async_write(socket, boost::asio::buffer(User_login + '\n'),
-        [this](boost::system::error_code ec, std::size_t /*length*/)
+        [this](boost::system::error_code ec, std::size_t )
         {
             if (!ec)
             {
-                read(); // Ждем ответ от сервера
+                read(); // wait the data from server
             }
             else
             {
@@ -77,7 +75,7 @@ void Client::read()
                 std::string response = read_buffer.substr(0, length);
                 read_buffer.erase(0, length);
                 
-                std::cout << "Received from server: " << response; // DEBUG
+                //std::cout << "Received from server: " << response; for debug
                 
                 // Обрабатываем ответ сервера
                 if (response == "LOGIN_ALREADY_IN_USE\n") 
@@ -104,6 +102,9 @@ void Client::read()
                     input_password();
                     send_password();
                 }
+                else if (response == "Unknown command.\n"){
+                    std::cout << "Unknown command. Available commands:\n/room_list\n/join_room <name>\n/create_room <name>\n/leave_room\n";
+                }
                 else if (response == "REGISTRATION_SUCCESS\n" || response == "LOGIN_SUCCESS\n") 
 {
     std::cout << "Authentication successful! You can start chatting now.\n";
@@ -111,13 +112,13 @@ void Client::read()
 }
                 else 
                 {
-                    // Выводим обычные сообщения чата
+                    // if no one response is not acceped
                     std::cout << response;
-                    read(); // Продолжаем чтение
+                    read(); 
                 }
             }
             else
-            {
+            {   
                 std::cerr << "Server is not working, please try again later!\n";
                 socket.close();
             }
@@ -125,22 +126,21 @@ void Client::read()
 }
 void Client::start_chat()
 {
-    // Запускаем чтение сообщений
+    //read the data from server and send data to the server
     read();
-    // Запускаем ввод сообщений
+    
     write();
 }
 
-//отправка пароля серверу
+// sending password
 void Client::send_password()
 {
     boost::asio::async_write(socket, boost::asio::buffer(User_password + '\n'), 
-        [this](boost::system::error_code ec, std::size_t /*length*/)
+        [this](boost::system::error_code ec, std::size_t )
         {
             if (!ec)
             {
-                // После отправки пароля просто ждем ответа от сервера
-                // read() уже запущен и будет обрабатывать ответ
+                
                 std::cout << "Password sent, waiting for response...\n";
                 read();
             }
@@ -152,28 +152,3 @@ void Client::send_password()
         });
 }
 
-void Client::start_chatting()
-{
-    // Запускаем асинхронное чтение сообщений от сервера
-    read();
-    
-    // Запускаем ввод сообщений в отдельном потоке
-    std::thread([this]() {
-        while (socket.is_open()) {
-            std::string msg;
-            std::getline(std::cin, msg);
-            
-            if (!msg.empty()) {
-                std::string full_msg = '[' + User_login + "]: " + msg + '\n';
-                
-                boost::system::error_code ec;
-                boost::asio::write(socket, boost::asio::buffer(full_msg), ec);
-                
-                if (ec) {
-                    std::cerr << "Write error: " << ec.message() << "\n";
-                    break;
-                }
-            }
-        }
-    }).detach();
-}
