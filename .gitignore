@@ -1,3 +1,6 @@
 # Игнорировать build-директории
 /bin/
-/build/
+/build/CMakeFiles
+/build/cmake_install
+/build/Makefile
+/build/CMakeCache
